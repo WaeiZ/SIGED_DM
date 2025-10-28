@@ -1,0 +1,27 @@
+name: siged
+description: SIGED - Sistema Inteligente de Gestão de Energia Doméstica
+publish_to: "none"
+version: 2.0.0+1
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  fl_chart: ^0.69.0
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.4.0
+  cloud_firestore: ^5.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
