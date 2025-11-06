@@ -29,10 +29,10 @@ class _SettingsPageState extends State<SettingsPage> {
             onChanged: (v) => setState(() => notifications = v),
           ),
           const Divider(),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('Sobre o SIGED'),
-            subtitle: const Text('Versão 2.0.0\nSistema Inteligente de Gestão de Energia Doméstica'),
+          const ListTile(
+            leading: Icon(Icons.info_outline),
+            title: Text('Sobre o SIGED'),
+            subtitle: Text('Versão 2.0.0\nSistema Inteligente de Gestão de Energia Doméstica'),
           ),
         ],
       ),

@@ -34,7 +34,7 @@ class SIGEDApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'SIGED',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF2F80ED), brightness: Brightness.light),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F80ED), brightness: Brightness.light),
           useMaterial3: true,
         ),
         home: AuthGate(firebaseReady: firebaseReady),
