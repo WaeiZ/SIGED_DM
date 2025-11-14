@@ -213,7 +213,6 @@ class ProfilePage extends StatelessWidget {
     String novaSenha,
   ) async {
     try {
-      // Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -227,22 +226,16 @@ class ProfilePage extends StatelessWidget {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('Utilizador não autenticado');
 
-      // Reautenticar o utilizador com a senha atual
       final credential = EmailAuthProvider.credential(
         email: user.email!,
         password: senhaAtual,
       );
       await user.reauthenticateWithCredential(credential);
 
-      // Alterar a senha
       await user.updatePassword(novaSenha);
 
-      // Fechar loading
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
+      if (context.mounted) Navigator.of(context).pop();
 
-      // Mostrar sucesso
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -252,48 +245,12 @@ class ProfilePage extends StatelessWidget {
           ),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      // Fechar loading
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-
-      String mensagemErro;
-      switch (e.code) {
-        case 'wrong-password':
-          mensagemErro = 'Senha atual incorreta';
-          break;
-        case 'weak-password':
-          mensagemErro = 'A nova senha é muito fraca';
-          break;
-        case 'requires-recent-login':
-          mensagemErro = 'Por favor, termina sessão e entra novamente';
-          break;
-        default:
-          mensagemErro = 'Erro ao alterar senha: ${e.message}';
-      }
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(mensagemErro),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
     } catch (e) {
-      // Fechar loading
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
+      if (context.mounted) Navigator.of(context).pop();
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro inesperado: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -323,7 +280,6 @@ class ProfilePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const SizedBox(height: 40),
-            // Avatar
             Container(
               width: 100,
               height: 100,
@@ -334,19 +290,16 @@ class ProfilePage extends StatelessWidget {
               child: const Icon(Icons.person, size: 60, color: Colors.white),
             ),
             const SizedBox(height: 32),
-            // Nome
             Text(
               'Nome: $nome',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 12),
-            // Email
             Text(
               'Email: $email',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 32),
-            // Botão Alterar Senha
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -367,7 +320,6 @@ class ProfilePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            // Botão Definições
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -392,7 +344,6 @@ class ProfilePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            // Botão Terminar Sessão
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -414,56 +365,6 @@ class ProfilePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: _buildBottomNavBar(context, 2),
-    );
-  }
-
-  Widget _buildBottomNavBar(BuildContext context, int currentIndex) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        selectedItemColor: const Color(0xFF2E7D32),
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.grey[100],
-        elevation: 0,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard, size: 24),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart, size: 24),
-            label: 'Comparação',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, size: 24),
-            label: 'Perfil',
-          ),
-        ],
-        onTap: (index) {
-          if (index == currentIndex) return;
-
-          // Navegação entre páginas
-          if (index == 0) {
-            // Navigator.pushReplacement para Dashboard
-          } else if (index == 1) {
-            // Navigator.pushReplacement para Histórico
-          }
-        },
       ),
     );
   }
