@@ -10,6 +10,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _name = TextEditingController();
   final _email = TextEditingController();
   final _pass = TextEditingController();
   bool _loading = false;
@@ -17,6 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthService>();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Criar Conta')),
       body: Center(
@@ -27,24 +29,63 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
+                // LOGO
+                Image.asset(
+                  'assets/LOGO.png',
+                  height: 154,
+                ),
+
+                const SizedBox(height: 24),
+
+                // NOME
+                TextField(
+                  controller: _name,
+                  decoration: const InputDecoration(labelText: 'Nome'),
+                ),
+
                 const SizedBox(height: 12),
-                TextField(controller: _pass, decoration: const InputDecoration(labelText: 'Password'), obscureText: true),
+
+                // EMAIL
+                TextField(
+                  controller: _email,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+
+                const SizedBox(height: 12),
+
+                // PASSWORD
+                TextField(
+                  controller: _pass,
+                  decoration: const InputDecoration(labelText: 'Password'),
+                  obscureText: true,
+                ),
+
                 const SizedBox(height: 20),
+
+                // BOTÃO REGISTAR
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _loading ? null : () async {
-                      setState(() => _loading = true);
-                      try {
-                        await auth.register(_email.text.trim(), _pass.text.trim());
-                        if (mounted) Navigator.pop(context);
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-                      } finally {
-                        if (mounted) setState(() => _loading = false);
-                      }
-                    },
+                    onPressed: _loading
+                        ? null
+                        : () async {
+                            setState(() => _loading = true);
+                            try {
+                              await auth.register(
+                                _email.text.trim(),
+                                _pass.text.trim(),
+                                name: _name.text.trim(), // <-- NOME AQUI
+                              );
+
+                              if (mounted) Navigator.pop(context);
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            } finally {
+                              if (mounted) setState(() => _loading = false);
+                            }
+                          },
                     child: const Text('Registar'),
                   ),
                 ),
