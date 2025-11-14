@@ -15,8 +15,8 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = const [
     DashboardPage(),
-    ComparisonPage(),
-    ProfilePage(),
+    ComparisonPage(userId: 'userId'),
+    ProfilePage(nome: 'User Name', email: 'user@example.com'),
   ];
 
   @override
@@ -29,8 +29,14 @@ class _HomePageState extends State<HomePage> {
           setState(() => _selectedIndex = index);
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Comparação'),
+          NavigationDestination(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart),
+            label: 'Comparação',
+          ),
           NavigationDestination(icon: Icon(Icons.person), label: 'Perfil'),
         ],
       ),
