@@ -46,15 +46,13 @@ class SIGEDApp extends StatelessWidget {
 
           colorScheme: const ColorScheme.light(
             primary: Color(0xFF1F6036), // verde normal
-            surface: Color(0xFFEBEFE7), // verde claro (cards/nav)
-            background: Colors.white, // fundo branco
+            surface: Color(0xFFEBEFE7), // fundo branco
 
             secondary: Color(0xFF1F6036),
             onSecondary: Colors.white,
 
             onPrimary: Colors.white, // texto em cima do verde escuro
-            onSurface: Colors.black, // texto em cima do verde claro
-            onBackground: Colors.black, // texto em cima do branco
+            onSurface: Colors.black, // texto em cima do branco
           ),
 
           scaffoldBackgroundColor: Colors.white,
@@ -68,13 +66,13 @@ class SIGEDApp extends StatelessWidget {
           ),
 
           // Bottom Navigation Bar
-          navigationBarTheme: NavigationBarThemeData(
-            backgroundColor: const Color(0xFFEBEFE7),
-            indicatorColor: const Color(0xFF1F6036),
-            iconTheme: const MaterialStatePropertyAll(
+          navigationBarTheme: const NavigationBarThemeData(
+            backgroundColor: Color(0xFFEBEFE7),
+            indicatorColor: Color(0xFF1F6036),
+            iconTheme: WidgetStatePropertyAll(
               IconThemeData(color: Colors.black),
             ),
-            labelTextStyle: const MaterialStatePropertyAll(
+            labelTextStyle: WidgetStatePropertyAll(
               TextStyle(
                 color: Colors.black,
                 fontSize: 12,
@@ -88,7 +86,7 @@ class SIGEDApp extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1F6036),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
+              shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(30)),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),

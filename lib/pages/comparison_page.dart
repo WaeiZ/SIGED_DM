@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 class ComparisonPage extends StatefulWidget {
   final String userId;
 
-  const ComparisonPage({Key? key, required this.userId}) : super(key: key);
+  const ComparisonPage({super.key, required this.userId});
 
   @override
   State<ComparisonPage> createState() => _ComparisonPageState();
@@ -368,7 +368,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
             sideTitles: SideTitles(showTitles: false),
           ),
         ),
-        gridData: FlGridData(show: true, drawVerticalLine: false),
+        gridData: const FlGridData(show: true, drawVerticalLine: false),
         borderData: FlBorderData(show: false),
         barGroups: dadosGrafico.asMap().entries.map((entry) {
           return BarChartGroupData(
@@ -376,7 +376,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
             barRods: [
               BarChartRodData(
                 toY: entry.value.valor,
-                color: const Color(0xFF2E7D32),
+                color: const Color(0xFF1F6036),
                 width: 20,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(4),
@@ -512,7 +512,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,
-        selectedItemColor: const Color(0xFF2E7D32),
+        selectedItemColor: const Color(0xFF1F6036),
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.grey[100],
         elevation: 0,

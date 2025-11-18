@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -30,7 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF1F6036),
         elevation: 0,
         centerTitle: true,
       ),
@@ -118,7 +118,7 @@ class _SettingsPageState extends State<SettingsPage> {
       trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF2E7D32),
+        activeThumbColor: const Color(0xFF1F6036),
       ),
     );
   }

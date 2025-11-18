@@ -91,9 +91,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   PopupMenuItem(value: 'Sensor3', child: Text('Sensor3')),
                 ],
                 // Este child é o botão que aparece na UI
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Text(
                       'Dispositivo',
                       style: TextStyle(
@@ -138,7 +138,7 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Consumo Atual',
                     style: TextStyle(
                       color: Colors.black, // força para evitar opacidade
@@ -154,9 +154,12 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       Text(
                         '${total.toStringAsFixed(0)} W',
-                        style: TextStyle(fontSize: 34, color: Colors.black),
+                        style: const TextStyle(
+                          fontSize: 34,
+                          color: Colors.black,
+                        ),
                       ),
-                      Icon(Icons.bolt, size: 50, color: Colors.black),
+                      const Icon(Icons.bolt, size: 50, color: Colors.black),
                     ],
                   ),
                 ],
@@ -220,10 +223,11 @@ class _DashboardPageState extends State<DashboardPage> {
                               gridData: FlGridData(
                                 show: true,
                                 drawVerticalLine: false,
-                                getDrawingHorizontalLine: (value) => FlLine(
-                                  color: Colors.black26,
-                                  strokeWidth: 0.4,
-                                ),
+                                getDrawingHorizontalLine: (value) =>
+                                    const FlLine(
+                                      color: Colors.black26,
+                                      strokeWidth: 0.4,
+                                    ),
                               ),
 
                               // -------------------------------

@@ -6,8 +6,7 @@ class ProfilePage extends StatelessWidget {
   final String nome;
   final String email;
 
-  const ProfilePage({Key? key, required this.nome, required this.email})
-    : super(key: key);
+  const ProfilePage({super.key, required this.nome, required this.email});
 
   Future<void> _terminarSessao(BuildContext context) async {
     try {
@@ -195,7 +194,7 @@ class ProfilePage extends StatelessWidget {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
+                    backgroundColor: const Color(0xFF1F6036),
                   ),
                   child: const Text('Alterar'),
                 ),
@@ -218,7 +217,7 @@ class ProfilePage extends StatelessWidget {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+            child: CircularProgressIndicator(color: Color(0xFF1F6036)),
           );
         },
       );
@@ -240,7 +239,7 @@ class ProfilePage extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Senha alterada com sucesso!'),
-            backgroundColor: Color(0xFF2E7D32),
+            backgroundColor: Color(0xFF1F6036),
             duration: Duration(seconds: 3),
           ),
         );
@@ -269,7 +268,7 @@ class ProfilePage extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF1F6036),
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
@@ -310,7 +309,7 @@ class ProfilePage extends StatelessWidget {
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: const Color(0xFF1F6036),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -334,7 +333,7 @@ class ProfilePage extends StatelessWidget {
                 icon: const Icon(Icons.settings, size: 20),
                 label: const Text('Definições', style: TextStyle(fontSize: 16)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: const Color(0xFF1F6036),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
