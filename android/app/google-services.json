@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "693473050507",
+    "project_id": "siged-f66c6",
+    "storage_bucket": "siged-f66c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693473050507:android:b4dd97c4d73936aa17f98e",
+        "android_client_info": {
+          "package_name": "com.example.siged"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgVybkmULE24q5saJObeedTR4uJkl9zlw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
