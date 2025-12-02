@@ -31,10 +31,7 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // LOGO
-                Image.asset(
-                  'assets/logo.png',
-                  height: 154,
-                ),
+                Image.asset('assets/logo.png', height: 154),
 
                 const SizedBox(height: 16),
 
@@ -98,6 +95,7 @@ class _LoginPageState extends State<LoginPage> {
 
                               if (mounted) {
                                 Navigator.pushReplacement(
+                                  // ignore: use_build_context_synchronously
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => const HomePage(),

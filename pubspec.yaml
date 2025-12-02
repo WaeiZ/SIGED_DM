@@ -1,4 +1,4 @@
-name: SIGED
+name: siged
 description: SIGED - Sistema Inteligente de Gestão de Energia Doméstica
 publish_to: "none"
 version: 2.0.0+1

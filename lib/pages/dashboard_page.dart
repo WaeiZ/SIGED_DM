@@ -81,9 +81,7 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               PopupMenuButton<String>(
-                onSelected: (value) {
-                  // TODO: guardar seleção
-                },
+                onSelected: (value) {},
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'Total', child: Text('Total')),
                   PopupMenuItem(value: 'Sensor1', child: Text('Sensor1')),

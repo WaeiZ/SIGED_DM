@@ -278,7 +278,6 @@ class _ComparisonPageState extends State<ComparisonPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context, 1),
     );
   }
 
@@ -494,48 +493,6 @@ class _ComparisonPageState extends State<ComparisonPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Funcionalidade de exportação em desenvolvimento'),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavBar(BuildContext context, int currentIndex) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: currentIndex,
-        selectedItemColor: const Color(0xFF1F6036),
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.grey[100],
-        elevation: 0,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard, size: 24),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart, size: 24),
-            label: 'Comparação',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, size: 24),
-            label: 'Perfil',
-          ),
-        ],
-        onTap: (index) {
-          // Navegação entre páginas
-        },
       ),
     );
   }
