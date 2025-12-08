@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:siged/pages/login_page.dart';
 import 'settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final String nome;
   final String email;
+  final bool firebaseReady;
 
-  const ProfilePage({super.key, required this.nome, required this.email});
+  const ProfilePage({
+    super.key,
+    required this.nome,
+    required this.email,
+    required this.firebaseReady,
+  });
 
   Future<void> _terminarSessao(BuildContext context) async {
     try {
       await FirebaseAuth.instance.signOut();
       if (context.mounted) {
-        Navigator.of(
-          context,
-        ).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => LoginPage(firebaseReady: firebaseReady),
+          ),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (context.mounted) {
