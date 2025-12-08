@@ -16,7 +16,11 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _pages = const [
     DashboardPage(),
     ComparisonPage(userId: 'userId'),
-    ProfilePage(nome: 'User Name', email: 'user@example.com'),
+    ProfilePage(
+      nome: 'User Name',
+      email: 'user@example.com',
+      firebaseReady: true,
+    ),
   ];
 
   @override
