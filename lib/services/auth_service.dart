@@ -6,7 +6,11 @@ class AuthService extends ChangeNotifier {
   final bool isAvailable;
   AuthService({required this.isAvailable});
 
+  // Getter para compatibilidade com o código atual
+  User? get currentUser => user;
+
   User? get user => isAvailable ? FirebaseAuth.instance.currentUser : null;
+
   Stream<User?> get userStream => isAvailable
       ? FirebaseAuth.instance.authStateChanges()
       : const Stream.empty();
@@ -19,30 +23,26 @@ class AuthService extends ChangeNotifier {
     );
   }
 
-  // --- REGISTO COM NOME (NOVO) ---
-  Future<void> register(String email, String password,
-      {required String name}) async {
+  Future<void> register(
+    String email,
+    String password, {
+    required String name,
+  }) async {
     if (!isAvailable) throw Exception('Firebase Auth não configurado.');
 
-    // Criar o utilizador
-    UserCredential credential =
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    UserCredential credential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
 
-    // Guardar nome na base de dados (Firestore)
     await FirebaseFirestore.instance
         .collection('users')
         .doc(credential.user!.uid)
         .set({
-      'uid': credential.user!.uid,
-      'email': email,
-      'name': name,
-      'createdAt': DateTime.now(),
-    });
+          'uid': credential.user!.uid,
+          'email': email,
+          'name': name,
+          'createdAt': DateTime.now(),
+        });
   }
-  // ---------------------------------
 
   Future<void> signOut() async {
     if (!isAvailable) return;

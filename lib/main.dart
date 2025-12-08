@@ -32,7 +32,17 @@ class SIGEDApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AuthService(isAvailable: firebaseReady),
         ),
-        Provider<IoTService>(create: (_) => IoTService.demo()..start()),
+        Provider<IoTService>(
+          create: (context) {
+            final auth = context.read<AuthService>();
+            final uid = auth.currentUser?.uid ?? "demo-user";
+
+            final service = IoTService(userId: uid);
+            service.start();
+            return service;
+          },
+          dispose: (_, service) => service.dispose(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
