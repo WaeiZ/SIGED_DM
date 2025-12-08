@@ -474,6 +474,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
     }
   }
 
+  // ignore: unused_element
   String _getUnidade() {
     switch (medidaSelecionada) {
       case 'energia':
