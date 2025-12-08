@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_brace_in_string_interps
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -14,6 +16,8 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final List<EnergySample> _history = [];
+  // 1. Variável de estado para a opção selecionada
+  String _selectedDevice = 'Total';
 
   @override
   void initState() {
@@ -34,22 +38,45 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // ------------------------------
-    // CALCULAR CONSUMO ATUAL
-    // ------------------------------
-    final latestByRoom = <String, double>{};
-    for (final s in _history) {
-      latestByRoom[s.room] = s.watts;
-    }
-    final total = latestByRoom.values.fold<double>(0, (a, b) => a + b);
+    // --- FILTRAR HISTÓRICO ---
+    // Filtra o histórico apenas se um sensor específico for selecionado.
+    final List<EnergySample> filteredHistory = (_selectedDevice == 'Total')
+        ? _history
+        : _history.where((s) => s.room == _selectedDevice).toList();
 
     // ------------------------------
-    // PREPARAR GRÁFICO
+    // CALCULAR CONSUMO ATUAL (USANDO DADOS FILTRADOS)
+    // ------------------------------
+    double total = 0;
+    if (_selectedDevice == 'Total') {
+      // Se for "Total", usamos a lógica original para somar o último valor de cada sensor.
+      final latestByRoom = <String, double>{};
+      for (final s in _history) {
+        // Usamos o histórico COMPLETO aqui.
+        latestByRoom[s.room] = s.watts;
+      }
+      total = latestByRoom.values.fold<double>(0, (a, b) => a + b);
+    } else {
+      // Se for um Sensor específico, o consumo atual é apenas o último valor desse sensor.
+      total = filteredHistory.isNotEmpty ? filteredHistory.last.watts : 0;
+    }
+
+    // ------------------------------
+    // PREPARAR GRÁFICO (USANDO DADOS FILTRADOS)
     // ------------------------------
     final grouped = <int, double>{};
-    for (final s in _history) {
+    for (final s in filteredHistory) {
+      // Usamos o histórico FILTRADO aqui.
       final second = s.time.second;
-      grouped[second] = (grouped[second] ?? 0) + s.watts;
+      // Se 'Total' estiver selecionado, a amostra já foi filtrada para ser o histórico completo,
+      // mas precisamos agrupá-los por segundo (somando os valores dos diferentes sensores).
+      // Se for um sensor específico, a amostra já está filtrada.
+      if (_selectedDevice == 'Total') {
+        grouped[second] = (grouped[second] ?? 0) + s.watts;
+      } else {
+        // Se for um sensor específico, o valor já é a leitura daquele sensor no momento.
+        grouped[second] = s.watts;
+      }
     }
 
     final ordered = grouped.entries.toList()
@@ -61,6 +88,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
     // Caso não haja dados ainda
     final hasData = spots.isNotEmpty;
+
+    // Calcula a largura do sublinhado baseada no texto do botão
+    double underlineWidth = (_selectedDevice.length * 9.0) + 30.0;
 
     // ------------------------------
     // UI
@@ -81,8 +111,11 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               PopupMenuButton<String>(
-                onSelected: (value) {
-                  // TODO: guardar seleção
+                // 2. Atualiza o estado
+                onSelected: (String value) {
+                  setState(() {
+                    _selectedDevice = value;
+                  });
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'Total', child: Text('Total')),
@@ -90,20 +123,20 @@ class _DashboardPageState extends State<DashboardPage> {
                   PopupMenuItem(value: 'Sensor2', child: Text('Sensor2')),
                   PopupMenuItem(value: 'Sensor3', child: Text('Sensor3')),
                 ],
-                // Este child é o botão que aparece na UI
-                child: const Row(
+                // 3. O child mostra o valor selecionado
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Dispositivo',
-                      style: TextStyle(
+                      _selectedDevice, // Usa a variável de estado aqui
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
                       ),
                     ),
-                    SizedBox(width: 6),
-                    Icon(
+                    const SizedBox(width: 6),
+                    const Icon(
                       Icons.keyboard_arrow_down_rounded,
                       color: Colors.black,
                     ),
@@ -115,7 +148,7 @@ class _DashboardPageState extends State<DashboardPage> {
               Container(
                 margin: const EdgeInsets.only(top: 2),
                 height: 1.4,
-                width: 105, // ajusta para o tamanho desejado
+                width: underlineWidth, // Largura dinâmica
                 color: Colors.black,
               ),
 
@@ -123,9 +156,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
 
-          //=====================================
-          // CARD 1 — CONSUMO ATUAL
-          //=====================================
+          // CARD 1 — CONSUMO ATUAL (usa a variável `total` já calculada)
           Card(
             color: cs.surface,
             elevation: 1,
@@ -138,10 +169,10 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Consumo Atual',
-                    style: TextStyle(
-                      color: Colors.black, // força para evitar opacidade
+                  Text(
+                    'Consumo Atual (${_selectedDevice})', // Título mais descritivo
+                    style: const TextStyle(
+                      color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -169,9 +200,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
           const SizedBox(height: 16),
 
-          //=====================================
-          // CARD 2 — GRÁFICO EM TEMPO REAL
-          //=====================================
+          // CARD 2 — GRÁFICO EM TEMPO REAL (usa a variável `spots` já calculada)
           Card(
             color: cs.surface,
             elevation: 1,
@@ -185,9 +214,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // TÍTULO
-                  const Text(
-                    'Consumo em Tempo Real',
-                    style: TextStyle(
+                  Text(
+                    'Consumo em Tempo Real (${_selectedDevice})', // Título mais descritivo
+                    style: const TextStyle(
                       color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -203,23 +232,15 @@ class _DashboardPageState extends State<DashboardPage> {
                             LineChartData(
                               minX: 0,
                               maxX: 59,
-
-                              // -------------------------------
-                              // LINHA PRINCIPAL DO GRÁFICO
-                              // -------------------------------
                               lineBarsData: [
                                 LineChartBarData(
-                                  spots: spots,
+                                  spots: spots, // Usa spots filtrados
                                   isCurved: true,
                                   barWidth: 3,
                                   color: cs.primary,
                                   dotData: const FlDotData(show: false),
                                 ),
                               ],
-
-                              // -------------------------------
-                              // GRELHA
-                              // -------------------------------
                               gridData: FlGridData(
                                 show: true,
                                 drawVerticalLine: false,
@@ -229,18 +250,12 @@ class _DashboardPageState extends State<DashboardPage> {
                                       strokeWidth: 0.4,
                                     ),
                               ),
-
-                              // -------------------------------
-                              // EIXOS / COORDENADAS
-                              // -------------------------------
                               titlesData: FlTitlesData(
                                 show: true,
-
-                                // EIXO X (segundos)
                                 bottomTitles: AxisTitles(
                                   sideTitles: SideTitles(
                                     showTitles: true,
-                                    interval: 10, // mostra 0, 10, 20...
+                                    interval: 10,
                                     reservedSize: 24,
                                     getTitlesWidget: (value, meta) {
                                       if (value % 10 == 0) {
@@ -256,13 +271,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                     },
                                   ),
                                 ),
-
-                                // EIXO Y (Watts)
                                 leftTitles: AxisTitles(
                                   sideTitles: SideTitles(
                                     showTitles: true,
-                                    interval:
-                                        200, // ajusta conforme o teu consumo
+                                    interval: 200,
                                     reservedSize: 36,
                                     getTitlesWidget: (value, meta) {
                                       return Text(
@@ -275,8 +287,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                     },
                                   ),
                                 ),
-
-                                // Desativa topo e direita
                                 topTitles: const AxisTitles(
                                   sideTitles: SideTitles(showTitles: false),
                                 ),
@@ -284,10 +294,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                   sideTitles: SideTitles(showTitles: false),
                                 ),
                               ),
-
-                              // -------------------------------
-                              // SEM BORDA
-                              // -------------------------------
                               borderData: FlBorderData(show: false),
                             ),
                           )

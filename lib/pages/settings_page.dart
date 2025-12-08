@@ -47,7 +47,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   modoEscuro = value;
                 });
-                // TODO: Implementar mudança de tema
               },
             ),
           ),
@@ -62,7 +61,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   notificacoes = value;
                 });
-                // TODO: Salvar preferência no Firebase
               },
             ),
           ),
