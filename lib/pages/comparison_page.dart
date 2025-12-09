@@ -563,7 +563,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
               level: 0,
               child: pw.Text(
                 'Relatório de Consumo',
-                style: pw.TextStyle(fontSize: 22),
+                style: const pw.TextStyle(fontSize: 22),
               ),
             ),
             pw.Paragraph(
