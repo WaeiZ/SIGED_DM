@@ -46,14 +46,13 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
       // Buscar dispositivos do utilizador
       final sensoresSnapshot = await _firestore
-          .collection('users') 
+          .collection('users')
           .doc(widget.userId)
-          .collection('sensors') 
+          .collection('sensors')
           .get();
 
-      final listaSensores = sensoresSnapshot.docs
-          .map((doc) => doc.id) // Usa o ID do documento
-          .toList();
+      final listaSensores =
+          sensoresSnapshot.docs.map((doc) => doc.id).toList();
 
       setState(() {
         dispositivos = listaSensores;
@@ -84,11 +83,11 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
       // Buscar dados de consumo do dispositivo no intervalo de datas
       final readingsSnapshot = await _firestore
-          .collection('users') // Mudou para 'users'
+          .collection('users')
           .doc(widget.userId)
-          .collection('sensors') // Mudou para 'sensors'
+          .collection('sensors')
           .doc(dispositivoSelecionado)
-          .collection('readings') // Mudou de 'historico' para 'readings'
+          .collection('readings')
           .where(
             'timestamp',
             isGreaterThanOrEqualTo: dataInicio.millisecondsSinceEpoch,
@@ -105,21 +104,17 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
       for (var doc in readingsSnapshot.docs) {
         final data = doc.data();
-        final timestamp = (data['timestamp'] as num)
-            .toInt(); // Nota: é number, não Timestamp
+        final timestamp = (data['timestamp'] as num).toInt();
         final timestampDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
         final dataKey = DateFormat('dd/MM').format(timestampDate);
 
         double valor = 0;
         switch (medidaSelecionada) {
           case 'energia':
-            valor =
-                (data['energy'] as num?)?.toDouble() ??
-                0; // Mudou para 'energy'
+            valor = (data['energy'] as num?)?.toDouble() ?? 0;
             break;
           case 'potencia':
-            valor =
-                (data['power'] as num?)?.toDouble() ?? 0; // Mudou para 'power'
+            valor = (data['power'] as num?)?.toDouble() ?? 0;
             break;
         }
 
@@ -154,6 +149,69 @@ class _ComparisonPageState extends State<ComparisonPage> {
       SnackBar(content: Text(mensagem), backgroundColor: Colors.red),
     );
   }
+
+  // ------------------ FUNÇÕES DE ESTATÍSTICA ------------------
+
+  double? _calcularMedia(List<double> valores) {
+    if (valores.isEmpty) return null;
+    final soma = valores.reduce((a, b) => a + b);
+    return soma / valores.length;
+  }
+
+  double? _calcularMediana(List<double> valores) {
+    if (valores.isEmpty) return null;
+    final lista = List<double>.from(valores)..sort();
+    final meio = lista.length ~/ 2;
+
+    if (lista.length.isOdd) {
+      return lista[meio];
+    } else {
+      return (lista[meio - 1] + lista[meio]) / 2;
+    }
+  }
+
+  double? _calcularModa(List<double> valores) {
+    if (valores.isEmpty) return null;
+
+    final frequencias = <double, int>{};
+
+    for (final v in valores) {
+      // arredondar para evitar diferenças mínimas de casas decimais
+      final chave = double.parse(v.toStringAsFixed(2));
+      frequencias[chave] = (frequencias[chave] ?? 0) + 1;
+    }
+
+    double moda = frequencias.keys.first;
+    int maxFreq = frequencias[moda]!;
+
+    frequencias.forEach((valor, freq) {
+      if (freq > maxFreq) {
+        maxFreq = freq;
+        moda = valor;
+      }
+    });
+
+    return moda;
+  }
+
+  /// Média móvel simples: devolve só a ÚLTIMA média móvel
+  double? _ultimaMediaMovel(List<double> valores, int janela) {
+    if (valores.isEmpty) return null;
+    if (janela <= 0) return null;
+
+    if (valores.length < janela) {
+      janela = valores.length;
+    }
+
+    double soma = 0;
+    for (int i = valores.length - janela; i < valores.length; i++) {
+      soma += valores[i];
+    }
+
+    return soma / janela;
+  }
+
+  // ------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -539,6 +597,10 @@ class _ComparisonPageState extends State<ComparisonPage> {
         ['Data/Hora', 'Potência (W)', 'Energia (kWh)'],
       ];
 
+      // listas de valores para estatísticas
+      final List<double> valoresPotencia = [];
+      final List<double> valoresEnergia = [];
+
       for (var doc in readingsSnapshot.docs) {
         final data = doc.data();
         final ts = (data['timestamp'] as num).toInt();
@@ -551,6 +613,28 @@ class _ComparisonPageState extends State<ComparisonPage> {
           power.toStringAsFixed(2),
           energy.toStringAsFixed(4),
         ]);
+
+        valoresPotencia.add(power);
+        valoresEnergia.add(energy);
+      }
+
+      // 2.1) Calcular estatísticas
+      const janelaMediaMovel = 5;
+      final mediaPot = _calcularMedia(valoresPotencia);
+      final medianaPot = _calcularMediana(valoresPotencia);
+      final modaPot = _calcularModa(valoresPotencia);
+      final mediaMovelPot =
+          _ultimaMediaMovel(valoresPotencia, janelaMediaMovel);
+
+      final mediaEner = _calcularMedia(valoresEnergia);
+      final medianaEner = _calcularMediana(valoresEnergia);
+      final modaEner = _calcularModa(valoresEnergia);
+      final mediaMovelEner =
+          _ultimaMediaMovel(valoresEnergia, janelaMediaMovel);
+
+      String formatNum(double? v, int decimals) {
+        if (v == null) return '-';
+        return v.toStringAsFixed(decimals);
       }
 
       // 3) Criar o documento PDF
@@ -571,7 +655,9 @@ class _ComparisonPageState extends State<ComparisonPage> {
             ),
             pw.Paragraph(
               text:
-                  'Dispositivo: $dispositivoSelecionado\nMedida selecionada: $medidaLabel\nPeríodo: ${_formatDate(dataInicio)} a ${_formatDate(dataFim)}',
+                  'Dispositivo: $dispositivoSelecionado\n'
+                  'Medida selecionada: $medidaLabel\n'
+                  'Período: ${_formatDate(dataInicio)} a ${_formatDate(dataFim)}',
             ),
             pw.SizedBox(height: 16),
             pw.Table.fromTextArray(
@@ -587,6 +673,32 @@ class _ComparisonPageState extends State<ComparisonPage> {
               ),
               border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.5),
               cellAlignment: pw.Alignment.centerRight,
+            ),
+            pw.SizedBox(height: 24),
+            pw.Text(
+              'Estatísticas',
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Paragraph(
+              text:
+                  'Potência (W)\n'
+                  '  Média: ${formatNum(mediaPot, 2)}\n'
+                  '  Mediana: ${formatNum(medianaPot, 2)}\n'
+                  '  Moda: ${formatNum(modaPot, 2)}\n'
+                  '  Média móvel (${janelaMediaMovel} leituras): ${formatNum(mediaMovelPot, 2)}',
+            ),
+            pw.SizedBox(height: 8),
+            pw.Paragraph(
+              text:
+                  '\nEnergia (kWh)\n'
+                  '  Média: ${formatNum(mediaEner, 4)}\n'
+                  '  Mediana: ${formatNum(medianaEner, 4)}\n'
+                  '  Moda: ${formatNum(modaEner, 4)}\n'
+                  '  Média móvel (${janelaMediaMovel} leituras): ${formatNum(mediaMovelEner, 4)}',
             ),
           ],
         ),
