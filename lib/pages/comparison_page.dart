@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class ComparisonPage extends StatefulWidget {
   final String userId;
@@ -39,18 +42,18 @@ class _ComparisonPageState extends State<ComparisonPage> {
       });
 
       // Buscar dispositivos do utilizador
-      final dispositivosSnapshot = await _firestore
-          .collection('utilizadores')
+      final sensoresSnapshot = await _firestore
+          .collection('users') // Mudou de 'utilizadores' para 'users'
           .doc(widget.userId)
-          .collection('dispositivos')
+          .collection('sensors') // Mudou de 'dispositivos' para 'sensors'
           .get();
 
-      final listaDispositivos = dispositivosSnapshot.docs
-          .map((doc) => doc.data()['nome'] as String)
+      final listaSensores = sensoresSnapshot.docs
+          .map((doc) => doc.id) // Usa o ID do documento
           .toList();
 
       setState(() {
-        dispositivos = listaDispositivos;
+        dispositivos = listaSensores;
         if (dispositivos.isNotEmpty) {
           dispositivoSelecionado = dispositivos.first;
           _carregarDadosHistorico();
@@ -77,35 +80,43 @@ class _ComparisonPageState extends State<ComparisonPage> {
       });
 
       // Buscar dados de consumo do dispositivo no intervalo de datas
-      final historicoSnapshot = await _firestore
-          .collection('utilizadores')
+      final readingsSnapshot = await _firestore
+          .collection('users') // Mudou para 'users'
           .doc(widget.userId)
-          .collection('dispositivos')
+          .collection('sensors') // Mudou para 'sensors'
           .doc(dispositivoSelecionado)
-          .collection('historico')
-          .where('timestamp', isGreaterThanOrEqualTo: dataInicio)
-          .where('timestamp', isLessThanOrEqualTo: dataFim)
+          .collection('readings') // Mudou de 'historico' para 'readings'
+          .where(
+            'timestamp',
+            isGreaterThanOrEqualTo: dataInicio.millisecondsSinceEpoch,
+          )
+          .where(
+            'timestamp',
+            isLessThanOrEqualTo: dataFim.millisecondsSinceEpoch,
+          )
           .orderBy('timestamp')
           .get();
 
       // Agrupar dados por dia e calcular média/soma
       final Map<String, List<double>> dadosPorDia = {};
 
-      for (var doc in historicoSnapshot.docs) {
+      for (var doc in readingsSnapshot.docs) {
         final data = doc.data();
-        final timestamp = (data['timestamp'] as Timestamp).toDate();
-        final dataKey = DateFormat('dd/MM').format(timestamp);
+        final timestamp = (data['timestamp'] as num)
+            .toInt(); // Nota: é number, não Timestamp
+        final timestampDate = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        final dataKey = DateFormat('dd/MM').format(timestampDate);
 
         double valor = 0;
         switch (medidaSelecionada) {
           case 'energia':
-            valor = (data['energia'] as num?)?.toDouble() ?? 0;
+            valor =
+                (data['energy'] as num?)?.toDouble() ??
+                0; // Mudou para 'energy'
             break;
           case 'potencia':
-            valor = (data['potencia'] as num?)?.toDouble() ?? 0;
-            break;
-          case 'corrente':
-            valor = (data['corrente'] as num?)?.toDouble() ?? 0;
+            valor =
+                (data['power'] as num?)?.toDouble() ?? 0; // Mudou para 'power'
             break;
         }
 
@@ -183,11 +194,10 @@ class _ComparisonPageState extends State<ComparisonPage> {
             const SizedBox(height: 8),
             _buildDropdown(
               label: _getMedidaLabel(medidaSelecionada),
-              items: const ['energia', 'potencia', 'corrente'],
+              items: const ['energia', 'potencia'],
               itemLabels: const {
                 'energia': 'Energia (kWh)',
                 'potencia': 'Potência (W)',
-                'corrente': 'Corrente (A)',
               },
               onChanged: (value) {
                 setState(() {
@@ -489,13 +499,106 @@ class _ComparisonPageState extends State<ComparisonPage> {
   }
 
   Future<void> _exportarPDF() async {
-    // Implementar exportação para PDF
-    // Podes usar a biblioteca pdf: ^3.10.0
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Funcionalidade de exportação em desenvolvimento'),
-      ),
-    );
+    if (dispositivoSelecionado == null) {
+      _mostrarErro('Selecione um dispositivo primeiro');
+      return;
+    }
+
+    try {
+      setState(() => isLoading = true);
+
+      // 1) Buscar os readings do Firestore (mesmo filtro de datas)
+      final readingsSnapshot = await _firestore
+          .collection('users')
+          .doc(widget.userId)
+          .collection('sensors')
+          .doc(dispositivoSelecionado)
+          .collection('readings')
+          .where(
+            'timestamp',
+            isGreaterThanOrEqualTo: dataInicio.millisecondsSinceEpoch,
+          )
+          .where(
+            'timestamp',
+            isLessThanOrEqualTo: dataFim.millisecondsSinceEpoch,
+          )
+          .orderBy('timestamp')
+          .get();
+
+      if (readingsSnapshot.docs.isEmpty) {
+        setState(() => isLoading = false);
+        _mostrarErro('Não há dados para exportar neste período.');
+        return;
+      }
+
+      // 2) Converter para uma lista de linhas (timestamp, power, energy)
+      final List<List<String>> linhas = [
+        ['Data/Hora', 'Potência (W)', 'Energia (kWh)'],
+      ];
+
+      for (var doc in readingsSnapshot.docs) {
+        final data = doc.data();
+        final ts = (data['timestamp'] as num).toInt();
+        final dt = DateTime.fromMillisecondsSinceEpoch(ts);
+        final power = (data['power'] as num?)?.toDouble() ?? 0;
+        final energy = (data['energy'] as num?)?.toDouble() ?? 0;
+
+        linhas.add([
+          DateFormat('dd/MM/yyyy HH:mm').format(dt),
+          power.toStringAsFixed(2),
+          energy.toStringAsFixed(4),
+        ]);
+      }
+
+      // 3) Criar o documento PDF
+      final pdf = pw.Document();
+
+      final medidaLabel = _getMedidaLabel(medidaSelecionada);
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) => [
+            pw.Header(
+              level: 0,
+              child: pw.Text(
+                'Relatório de Consumo',
+                style: pw.TextStyle(fontSize: 22),
+              ),
+            ),
+            pw.Paragraph(
+              text:
+                  'Dispositivo: $dispositivoSelecionado\nMedida selecionada: $medidaLabel\nPeríodo: ${_formatDate(dataInicio)} a ${_formatDate(dataFim)}',
+            ),
+            pw.SizedBox(height: 16),
+            pw.Table.fromTextArray(
+              headers: linhas.first,
+              data: linhas.sublist(1),
+              headerStyle: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+              ),
+              cellStyle: const pw.TextStyle(fontSize: 9),
+              headerDecoration: const pw.BoxDecoration(
+                color: PdfColors.grey300,
+              ),
+              border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.5),
+              cellAlignment: pw.Alignment.centerRight,
+            ),
+          ],
+        ),
+      );
+
+      // 4) Mostrar diálogo de impressão / guardar ficheiro
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
+
+      setState(() => isLoading = false);
+    } catch (e) {
+      setState(() => isLoading = false);
+      _mostrarErro('Erro ao exportar PDF: $e');
+    }
   }
 }
 

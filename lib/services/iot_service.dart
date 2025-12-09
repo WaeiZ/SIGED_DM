@@ -25,11 +25,35 @@ class IoTService {
   };
 
   void start() {
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _emit("Sensor1");
-      _emit("Sensor2");
-      _emit("Sensor3");
+    // Inicializa os sensores ANTES de começar a emitir dados
+    _initializeSensors().then((_) {
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+        _emit("Sensor1");
+        _emit("Sensor2");
+        _emit("Sensor3");
+      });
     });
+  }
+
+  Future<void> _initializeSensors() async {
+    try {
+      for (final sensorId in ["Sensor1", "Sensor2", "Sensor3"]) {
+        await _db
+            .collection("users")
+            .doc(userId)
+            .collection("sensors")
+            .doc(sensorId)
+            .set({
+              'type': 'energy',
+              'description': sensorId,
+              'powerUnit': 'W',
+              'energyUnit': 'kWh',
+            }, SetOptions(merge: true));
+      }
+      print('✅ Sensores inicializados com sucesso!');
+    } catch (e) {
+      print('❌ Erro ao inicializar sensores: $e');
+    }
   }
 
   Future<void> _emit(String room) async {

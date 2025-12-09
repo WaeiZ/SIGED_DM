@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'dashboard_page.dart';
 import 'comparison_page.dart';
 import 'profile_page.dart';
+import '../services/auth_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,20 +16,32 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = const [
-    DashboardPage(),
-    ComparisonPage(userId: 'userId'),
-    ProfilePage(
-      nome: 'User Name',
-      email: 'user@example.com',
-      firebaseReady: true,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    // Obtém o utilizador autenticado
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final auth = context.watch<AuthService>();
+
+    // Se não houver utilizador autenticado, mostra erro
+    if (currentUser == null) {
+      return const Scaffold(
+        body: Center(child: Text('Erro: Utilizador não autenticado')),
+      );
+    }
+
+    // Cria as páginas com os dados corretos do utilizador
+    final List<Widget> pages = [
+      const DashboardPage(),
+      ComparisonPage(userId: currentUser.uid), // ← UID real!
+      ProfilePage(
+        nome: currentUser.displayName ?? 'User Name',
+        email: currentUser.email ?? 'user@example.com',
+        firebaseReady: true,
+      ),
+    ];
+
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
