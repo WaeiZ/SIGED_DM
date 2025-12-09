@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:siged/pages/login_page.dart';
 import 'settings_page.dart';
+import 'device_settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final String nome;
@@ -319,6 +320,33 @@ class ProfilePage extends StatelessWidget {
                 icon: const Icon(Icons.vpn_key, size: 20),
                 label: const Text(
                   'Alterar Senha',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F6036),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const DeviceSettingsPage(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.devices, size: 20),
+                label: const Text(
+                  'Definições de Dispositivos',
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(

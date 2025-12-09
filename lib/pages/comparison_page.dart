@@ -27,6 +27,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
   DateTime dataFim = DateTime.now();
 
   List<String> dispositivos = [];
+  Map<String, String> dispositivoMap = {};
   List<ChartData> dadosGrafico = [];
   bool isLoading = true;
   bool hasError = false;
@@ -51,11 +52,17 @@ class _ComparisonPageState extends State<ComparisonPage> {
           .collection('sensors')
           .get();
 
-      final listaSensores =
-          sensoresSnapshot.docs.map((doc) => doc.id).toList();
+      // Cria um Map com description → id
+      final Map<String, String> sensorMap = {};
+      for (var doc in sensoresSnapshot.docs) {
+        final data = doc.data();
+        final description = data['description'] ?? doc.id;
+        sensorMap[description] = doc.id; // "Sala" → "Sensor1"
+      }
 
       setState(() {
-        dispositivos = listaSensores;
+        dispositivoMap = sensorMap;
+        dispositivos = sensorMap.keys.toList();
         if (dispositivos.isNotEmpty) {
           dispositivoSelecionado = dispositivos.first;
           _carregarDadosHistorico();
@@ -81,12 +88,15 @@ class _ComparisonPageState extends State<ComparisonPage> {
         hasError = false;
       });
 
+      // Converte description → id real
+      final sensorId = dispositivoMap[dispositivoSelecionado]!;
+
       // Buscar dados de consumo do dispositivo no intervalo de datas
       final readingsSnapshot = await _firestore
           .collection('users')
           .doc(widget.userId)
           .collection('sensors')
-          .doc(dispositivoSelecionado)
+          .doc(sensorId)
           .collection('readings')
           .where(
             'timestamp',
@@ -226,7 +236,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF2E7D32),
+        backgroundColor: const Color(0xFF1F6036),
         elevation: 0,
         centerTitle: true,
       ),
@@ -337,7 +347,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: const Color(0xFF1F6036),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -355,7 +365,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
   Widget _buildChartWidget() {
     if (isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
+        child: CircularProgressIndicator(color: Color(0xFF1F6036)),
       );
     }
 
@@ -568,12 +578,13 @@ class _ComparisonPageState extends State<ComparisonPage> {
     try {
       setState(() => isLoading = true);
 
+      final sensorId = dispositivoMap[dispositivoSelecionado]!;
       // 1) Buscar os readings do Firestore (mesmo filtro de datas)
       final readingsSnapshot = await _firestore
           .collection('users')
           .doc(widget.userId)
           .collection('sensors')
-          .doc(dispositivoSelecionado)
+          .doc(sensorId)
           .collection('readings')
           .where(
             'timestamp',
@@ -623,14 +634,18 @@ class _ComparisonPageState extends State<ComparisonPage> {
       final mediaPot = _calcularMedia(valoresPotencia);
       final medianaPot = _calcularMediana(valoresPotencia);
       final modaPot = _calcularModa(valoresPotencia);
-      final mediaMovelPot =
-          _ultimaMediaMovel(valoresPotencia, janelaMediaMovel);
+      final mediaMovelPot = _ultimaMediaMovel(
+        valoresPotencia,
+        janelaMediaMovel,
+      );
 
       final mediaEner = _calcularMedia(valoresEnergia);
       final medianaEner = _calcularMediana(valoresEnergia);
       final modaEner = _calcularModa(valoresEnergia);
-      final mediaMovelEner =
-          _ultimaMediaMovel(valoresEnergia, janelaMediaMovel);
+      final mediaMovelEner = _ultimaMediaMovel(
+        valoresEnergia,
+        janelaMediaMovel,
+      );
 
       String formatNum(double? v, int decimals) {
         if (v == null) return '-';
@@ -677,10 +692,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
             pw.SizedBox(height: 24),
             pw.Text(
               'Estatísticas',
-              style: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-              ),
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
             ),
             pw.SizedBox(height: 8),
             pw.Paragraph(
