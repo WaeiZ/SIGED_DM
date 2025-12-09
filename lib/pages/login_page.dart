@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'register_page.dart';
 import 'home_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   final bool firebaseReady;
@@ -19,6 +20,47 @@ class _LoginPageState extends State<LoginPage> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
   bool _loading = false;
+
+  // Função para enviar o email de redefinição de senha
+  Future<void> _esqueceuSenha() async {
+    final email = _email.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, insira um email válido.')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      // Exibe um alerta de sucesso
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Email Enviado'),
+            content: const Text(
+              'Um link para redefinir a sua password foi enviado para o seu email.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Fechar'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      // Caso ocorra um erro
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,9 +99,8 @@ class _LoginPageState extends State<LoginPage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      // Aqui podes adicionar reset de password
-                    },
+                    onPressed:
+                        _esqueceuSenha, // Chama a função de reset de senha
                     child: const Text(
                       'Esqueceu a sua password?',
                       style: TextStyle(color: Color(0xFF1F6036)),
