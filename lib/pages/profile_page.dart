@@ -225,17 +225,22 @@ class ProfilePage extends StatelessWidget {
     String senhaAtual,
     String novaSenha,
   ) async {
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF1F6036)),
-          );
-        },
-      );
+    // 1. Capturar o Navigator e o ScaffoldMessenger ANTES do processo assíncrono
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
+    // Mostrar o diálogo de loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF1F6036)),
+        );
+      },
+    );
+
+    try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('Utilizador não autenticado');
 
@@ -243,29 +248,30 @@ class ProfilePage extends StatelessWidget {
         email: user.email!,
         password: senhaAtual,
       );
+
+      // Reautenticar
       await user.reauthenticateWithCredential(credential);
 
+      // Atualizar Senha
       await user.updatePassword(novaSenha);
 
-      if (context.mounted) Navigator.of(context).pop();
+      // 2. Fechar o diálogo usando a referência capturada (sem verificar mounted)
+      navigator.pop();
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Senha alterada com sucesso!'),
-            backgroundColor: Color(0xFF1F6036),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
+      // Mostrar sucesso
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Senha alterada com sucesso!'),
+          backgroundColor: Color(0xFF1F6036),
+        ),
+      );
     } catch (e) {
-      if (context.mounted) Navigator.of(context).pop();
+      // Se der erro, fechar o diálogo também
+      navigator.pop();
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
-      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 

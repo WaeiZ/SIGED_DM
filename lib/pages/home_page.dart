@@ -59,10 +59,10 @@ class _HomePageState extends State<HomePage> {
 
         // Cria as páginas com os dados corretos
         final List<Widget> pages = [
-          const DashboardPage(),
+          DashboardPage(userId: currentUser.uid),
           ComparisonPage(userId: currentUser.uid),
           ProfilePage(
-            nome: nomeUtilizador, // ← USA A VARIÁVEL DO FIRESTORE!
+            nome: nomeUtilizador,
             email: emailUtilizador,
             firebaseReady: true,
           ),

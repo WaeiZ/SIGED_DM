@@ -579,7 +579,8 @@ class _ComparisonPageState extends State<ComparisonPage> {
       setState(() => isLoading = true);
 
       final sensorId = dispositivoMap[dispositivoSelecionado]!;
-      // 1) Buscar os readings do Firestore (mesmo filtro de datas)
+
+      // 1) Buscar todos os readings (Mantemos isto igual para as estatísticas serem reais)
       final readingsSnapshot = await _firestore
           .collection('users')
           .doc(widget.userId)
@@ -603,12 +604,18 @@ class _ComparisonPageState extends State<ComparisonPage> {
         return;
       }
 
-      // 2) Converter para uma lista de linhas (timestamp, power, energy)
-      final List<List<String>> linhas = [
-        ['Data/Hora', 'Potência (W)', 'Energia (kWh)'],
+      // 2) Preparar dados
+      // Cabeçalho da tabela
+      final List<String> headers = [
+        'Data/Hora',
+        'Potência (W)',
+        'Energia (kWh)',
       ];
 
-      // listas de valores para estatísticas
+      // Lista completa de dados para a tabela
+      final List<List<String>> dadosTabela = [];
+
+      // Listas de valores para estatísticas
       final List<double> valoresPotencia = [];
       final List<double> valoresEnergia = [];
 
@@ -619,7 +626,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
         final power = (data['power'] as num?)?.toDouble() ?? 0;
         final energy = (data['energy'] as num?)?.toDouble() ?? 0;
 
-        linhas.add([
+        dadosTabela.add([
           DateFormat('dd/MM/yyyy HH:mm').format(dt),
           power.toStringAsFixed(2),
           energy.toStringAsFixed(4),
@@ -629,7 +636,17 @@ class _ComparisonPageState extends State<ComparisonPage> {
         valoresEnergia.add(energy);
       }
 
-      // 2.1) Calcular estatísticas
+      const int maxLinhasPDF =
+          500; // Defina um limite seguro (ex: 500 ou 1000 linhas)
+      final bool dadosForamCortados = dadosTabela.length > maxLinhasPDF;
+
+      // Pegamos apenas as primeiras X linhas para desenhar na tabela
+      final List<List<String>> dadosParaImprimir = dadosForamCortados
+          ? dadosTabela.take(maxLinhasPDF).toList()
+          : dadosTabela;
+      // ---------------------------------------------------------
+
+      // 2.1) Calcular estatísticas (Com os dados TODOS, não os limitados)
       const janelaMediaMovel = 5;
       final mediaPot = _calcularMedia(valoresPotencia);
       final medianaPot = _calcularMediana(valoresPotencia);
@@ -654,30 +671,36 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
       // 3) Criar o documento PDF
       final pdf = pw.Document();
-
       final medidaLabel = _getMedidaLabel(medidaSelecionada);
 
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(20), // Margem segura
           build: (context) => [
             pw.Header(
               level: 0,
               child: pw.Text(
                 'Relatório de Consumo',
-                style: const pw.TextStyle(fontSize: 22),
+                style: pw.TextStyle(
+                  fontSize: 22,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
             ),
             pw.Paragraph(
               text:
                   'Dispositivo: $dispositivoSelecionado\n'
                   'Medida selecionada: $medidaLabel\n'
-                  'Período: ${_formatDate(dataInicio)} a ${_formatDate(dataFim)}',
+                  'Período: ${_formatDate(dataInicio)} a ${_formatDate(dataFim)}\n'
+                  'Total de registos encontrados: ${dadosTabela.length}',
             ),
             pw.SizedBox(height: 16),
+
+            // Tabela Limitada
             pw.Table.fromTextArray(
-              headers: linhas.first,
-              data: linhas.sublist(1),
+              headers: headers,
+              data: dadosParaImprimir, // Usamos a lista cortada
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 fontSize: 10,
@@ -689,34 +712,69 @@ class _ComparisonPageState extends State<ComparisonPage> {
               border: pw.TableBorder.all(color: PdfColors.grey600, width: 0.5),
               cellAlignment: pw.Alignment.centerRight,
             ),
+
+            // Aviso se houve corte
+            if (dadosForamCortados)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 10),
+                child: pw.Text(
+                  "ATENÇÃO: Devido ao grande volume de dados, apenas as primeiras $maxLinhasPDF linhas foram listadas acima para permitir a exportação do PDF. As estatísticas abaixo consideram TODOS os registos.",
+                  style: const pw.TextStyle(color: PdfColors.red, fontSize: 10),
+                ),
+              ),
+
             pw.SizedBox(height: 24),
+
+            // Estatísticas
             pw.Text(
-              'Estatísticas',
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+              'Estatísticas (Baseadas em todos os ${dadosTabela.length} registos)',
+              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
             ),
+            pw.Divider(),
             pw.SizedBox(height: 8),
-            pw.Paragraph(
-              text:
-                  'Potência (W)\n'
-                  '  Média: ${formatNum(mediaPot, 2)}\n'
-                  '  Mediana: ${formatNum(medianaPot, 2)}\n'
-                  '  Moda: ${formatNum(modaPot, 2)}\n'
-                  '  Média móvel (${janelaMediaMovel} leituras): ${formatNum(mediaMovelPot, 2)}',
-            ),
-            pw.SizedBox(height: 8),
-            pw.Paragraph(
-              text:
-                  '\nEnergia (kWh)\n'
-                  '  Média: ${formatNum(mediaEner, 4)}\n'
-                  '  Mediana: ${formatNum(medianaEner, 4)}\n'
-                  '  Moda: ${formatNum(modaEner, 4)}\n'
-                  '  Média móvel (${janelaMediaMovel} leituras): ${formatNum(mediaMovelEner, 4)}',
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Potência (W)',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text('Média: ${formatNum(mediaPot, 2)}'),
+                      pw.Text('Mediana: ${formatNum(medianaPot, 2)}'),
+                      pw.Text('Moda: ${formatNum(modaPot, 2)}'),
+                      pw.Text(
+                        'Média móvel (5): ${formatNum(mediaMovelPot, 2)}',
+                      ),
+                    ],
+                  ),
+                ),
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Energia (kWh)',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      pw.Text('Média: ${formatNum(mediaEner, 4)}'),
+                      pw.Text('Mediana: ${formatNum(medianaEner, 4)}'),
+                      pw.Text('Moda: ${formatNum(modaEner, 4)}'),
+                      pw.Text(
+                        'Média móvel (5): ${formatNum(mediaMovelEner, 4)}',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       );
 
-      // 4) Mostrar diálogo de impressão / guardar ficheiro
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => pdf.save(),
       );
