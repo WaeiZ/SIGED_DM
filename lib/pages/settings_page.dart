@@ -1,3 +1,6 @@
+//Martim Santos - 22309746
+//Sérgio Dias - 22304791
+
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {

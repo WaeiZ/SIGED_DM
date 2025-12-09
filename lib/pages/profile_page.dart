@@ -1,3 +1,6 @@
+//Martim Santos - 22309746
+//Sérgio Dias - 22304791
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:siged/pages/login_page.dart';

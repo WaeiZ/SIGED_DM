@@ -1,3 +1,6 @@
+//Martim Santos - 22309746
+//Sérgio Dias - 22304791
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,7 +22,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String? dispositivoSelecionado;
-  String medidaSelecionada = 'energia'; // energia, potencia, corrente
+  String medidaSelecionada = 'energia'; // energia, potencia
   DateTime dataInicio = DateTime.now().subtract(const Duration(days: 7));
   DateTime dataFim = DateTime.now();
 
@@ -43,9 +46,9 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
       // Buscar dispositivos do utilizador
       final sensoresSnapshot = await _firestore
-          .collection('users') // Mudou de 'utilizadores' para 'users'
+          .collection('users') 
           .doc(widget.userId)
-          .collection('sensors') // Mudou de 'dispositivos' para 'sensors'
+          .collection('sensors') 
           .get();
 
       final listaSensores = sensoresSnapshot.docs

@@ -1,3 +1,6 @@
+//Martim Santos - 22309746
+//Sérgio Dias - 22304791
+
 class EnergySample {
   final DateTime time;
   final String room;
