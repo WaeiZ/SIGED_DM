@@ -109,7 +109,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
           .orderBy('timestamp')
           .get();
 
-      // Agrupar dados por dia e calcular média/soma
+      // Agrupar dados por dia e calcular média
       final Map<String, List<double>> dadosPorDia = {};
 
       for (var doc in readingsSnapshot.docs) {
@@ -128,9 +128,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
             break;
         }
 
-        if (!dadosPorDia.containsKey(dataKey)) {
-          dadosPorDia[dataKey] = [];
-        }
+        dadosPorDia.putIfAbsent(dataKey, () => []);
         dadosPorDia[dataKey]!.add(valor);
       }
 
@@ -257,6 +255,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
               },
             ),
             const SizedBox(height: 16),
+
             // Selecionar Medida
             const Text(
               'Selecionar Medida',
@@ -264,7 +263,8 @@ class _ComparisonPageState extends State<ComparisonPage> {
             ),
             const SizedBox(height: 8),
             _buildDropdown(
-              label: _getMedidaLabel(medidaSelecionada),
+              // IMPORTANTE: aqui o label tem de bater certo com os "items"
+              label: medidaSelecionada,
               items: const ['energia', 'potencia'],
               itemLabels: const {
                 'energia': 'Energia (kWh)',
@@ -277,7 +277,9 @@ class _ComparisonPageState extends State<ComparisonPage> {
                 _carregarDadosHistorico();
               },
             ),
+
             const SizedBox(height: 24),
+
             // Seleção de datas
             Row(
               children: [
@@ -325,7 +327,9 @@ class _ComparisonPageState extends State<ComparisonPage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 32),
+
             // Gráfico
             Container(
               padding: const EdgeInsets.all(16),
@@ -335,7 +339,9 @@ class _ComparisonPageState extends State<ComparisonPage> {
               ),
               child: SizedBox(height: 250, child: _buildChartWidget()),
             ),
+
             const SizedBox(height: 32),
+
             // Botão Exportar PDF
             SizedBox(
               width: double.infinity,
@@ -407,9 +413,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
         maxY: maxY,
-        barTouchData: BarTouchData(
-          enabled: false,
-        ), // Desativa o tooltip temporariamente
+        barTouchData: BarTouchData(enabled: false),
         titlesData: FlTitlesData(
           show: true,
           bottomTitles: AxisTitles(
@@ -485,7 +489,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
       ),
       child: DropdownButton<String>(
         value: items.contains(label) ? label : null,
-        hint: Text(label),
+        hint: Text(itemLabels?[label] ?? label),
         isExpanded: true,
         underline: const SizedBox(),
         items: items.map((String value) {
@@ -580,7 +584,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
 
       final sensorId = dispositivoMap[dispositivoSelecionado]!;
 
-      // 1) Buscar todos os readings (Mantemos isto igual para as estatísticas serem reais)
+      // 1) Buscar todos os readings
       final readingsSnapshot = await _firestore
           .collection('users')
           .doc(widget.userId)
@@ -605,17 +609,13 @@ class _ComparisonPageState extends State<ComparisonPage> {
       }
 
       // 2) Preparar dados
-      // Cabeçalho da tabela
       final List<String> headers = [
         'Data/Hora',
         'Potência (W)',
         'Energia (kWh)',
       ];
 
-      // Lista completa de dados para a tabela
       final List<List<String>> dadosTabela = [];
-
-      // Listas de valores para estatísticas
       final List<double> valoresPotencia = [];
       final List<double> valoresEnergia = [];
 
@@ -636,17 +636,27 @@ class _ComparisonPageState extends State<ComparisonPage> {
         valoresEnergia.add(energy);
       }
 
-      const int maxLinhasPDF =
-          500; // Defina um limite seguro (ex: 500 ou 1000 linhas)
+      // TOTAL DE ENERGIA (kWh) NO PERÍODO
+      // Robusto a resets: soma apenas incrementos positivos (energy cumulativo)
+      double totalEnergiaKWh = 0;
+
+      if (valoresEnergia.length >= 2) {
+        for (int i = 1; i < valoresEnergia.length; i++) {
+          final diff = valoresEnergia[i] - valoresEnergia[i - 1];
+          if (diff > 0) totalEnergiaKWh += diff;
+        }
+      }
+
+      // -----------------------------------------------------------
+
+      const int maxLinhasPDF = 500;
       final bool dadosForamCortados = dadosTabela.length > maxLinhasPDF;
 
-      // Pegamos apenas as primeiras X linhas para desenhar na tabela
       final List<List<String>> dadosParaImprimir = dadosForamCortados
           ? dadosTabela.take(maxLinhasPDF).toList()
           : dadosTabela;
-      // ---------------------------------------------------------
 
-      // 2.1) Calcular estatísticas (Com os dados TODOS, não os limitados)
+      // 2.1) Calcular estatísticas
       const janelaMediaMovel = 5;
       final mediaPot = _calcularMedia(valoresPotencia);
       final medianaPot = _calcularMediana(valoresPotencia);
@@ -676,7 +686,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(20), // Margem segura
+          margin: const pw.EdgeInsets.all(20),
           build: (context) => [
             pw.Header(
               level: 0,
@@ -693,14 +703,15 @@ class _ComparisonPageState extends State<ComparisonPage> {
                   'Dispositivo: $dispositivoSelecionado\n'
                   'Medida selecionada: $medidaLabel\n'
                   'Período: ${_formatDate(dataInicio)} a ${_formatDate(dataFim)}\n'
-                  'Total de registos encontrados: ${dadosTabela.length}',
+                  'Total de registos encontrados: ${dadosTabela.length}\n'
+                  'Total de energia no período: ${totalEnergiaKWh.toStringAsFixed(4)} kWh',
             ),
             pw.SizedBox(height: 16),
 
             // Tabela Limitada
             pw.Table.fromTextArray(
               headers: headers,
-              data: dadosParaImprimir, // Usamos a lista cortada
+              data: dadosParaImprimir,
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 fontSize: 10,
@@ -713,7 +724,6 @@ class _ComparisonPageState extends State<ComparisonPage> {
               cellAlignment: pw.Alignment.centerRight,
             ),
 
-            // Aviso se houve corte
             if (dadosForamCortados)
               pw.Padding(
                 padding: const pw.EdgeInsets.only(top: 10),
@@ -765,6 +775,11 @@ class _ComparisonPageState extends State<ComparisonPage> {
                       pw.Text('Moda: ${formatNum(modaEner, 4)}'),
                       pw.Text(
                         'Média móvel (5): ${formatNum(mediaMovelEner, 4)}',
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Text(
+                        'Total no período: ${totalEnergiaKWh.toStringAsFixed(4)} kWh',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
                     ],
                   ),
