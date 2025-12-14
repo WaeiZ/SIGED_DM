@@ -325,7 +325,7 @@ class ProfilePage extends StatelessWidget {
                 onPressed: () => _mostrarDialogAlterarSenha(context),
                 icon: const Icon(Icons.vpn_key, size: 20),
                 label: const Text(
-                  'Alterar Senha',
+                  'Alterar Password',
                   style: TextStyle(fontSize: 16),
                 ),
                 style: ElevatedButton.styleFrom(
