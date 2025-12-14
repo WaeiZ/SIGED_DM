@@ -42,7 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 8),
           // Modo Escuro
           Container(
-            color: Colors.white,
+            color: Colors.grey[100],
             child: _buildSwitchTile(
               title: 'Modo Escuro',
               value: modoEscuro,
@@ -56,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(height: 1),
           // Notificações
           Container(
-            color: Colors.white,
+            color: Colors.grey[100],
             child: _buildSwitchTile(
               title: 'Notificações',
               value: notificacoes,
@@ -71,7 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           // Sobre o SIGED
           Container(
-            color: Colors.white,
+            color: Colors.grey[100],
             child: ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(8),
@@ -89,7 +89,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: 4),
-                  Text('Versão 2.0.0', style: TextStyle(fontSize: 14)),
+                  Text('Versão 1.0.0', style: TextStyle(fontSize: 14)),
                   Text(
                     'Sistema Inteligente de Gestão de Energia Doméstica',
                     style: TextStyle(fontSize: 12),
