@@ -21,20 +21,58 @@ class _LoginPageState extends State<LoginPage> {
   final _pass = TextEditingController();
   bool _loading = false;
 
-  // Função para enviar o email de redefinição de senha
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF1F6036),
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  String _loginMessageFromCode(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'O email não é válido.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Email ou password inválidos.';
+      case 'network-request-failed':
+        return 'Sem ligação à internet. Tenta novamente.';
+      case 'too-many-requests':
+        return 'Demasiadas tentativas. Tenta mais tarde.';
+      default:
+        return 'Não foi possível iniciar sessão.';
+    }
+  }
+
+  String _resetMessageFromCode(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'O email não é válido.';
+      case 'user-not-found':
+        return 'Não existe nenhuma conta com esse email.';
+      case 'network-request-failed':
+        return 'Sem ligação à internet. Tenta novamente.';
+      default:
+        return 'Não foi possível enviar o email de redefinição.';
+    }
+  }
+
   Future<void> _esqueceuSenha() async {
     final email = _email.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, insira um email válido.')),
-      );
+      _showSnack('Por favor, insira um email válido.');
       return;
     }
 
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      // Exibe um alerta de sucesso
+
+      if (!mounted) return;
       showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -45,21 +83,27 @@ class _LoginPageState extends State<LoginPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
+                onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Fechar'),
               ),
             ],
           );
         },
       );
+    } on FirebaseAuthException catch (e) {
+      _showSnack(_resetMessageFromCode(e.code));
+      debugPrint('Reset password error: ${e.code} | ${e.message}');
     } catch (e) {
-      // Caso ocorra um erro
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      _showSnack('Ocorreu um erro. Tenta novamente.');
+      debugPrint('Reset password error: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _pass.dispose();
+    super.dispose();
   }
 
   @override
@@ -76,12 +120,10 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // LOGO
                 Image.asset('assets/logo.png', height: 154),
 
                 const SizedBox(height: 16),
 
-                // EMAIL
                 TextField(
                   controller: _email,
                   decoration: const InputDecoration(labelText: 'Email'),
@@ -89,19 +131,16 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 12),
 
-                // PASSWORD
                 TextField(
                   controller: _pass,
                   decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
                 ),
 
-                // ➤ BOTÃO "Esqueceu a sua password?"
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed:
-                        _esqueceuSenha, // Chama a função de reset de senha
+                    onPressed: _esqueceuSenha,
                     child: const Text(
                       'Esqueceu a sua password?',
                       style: TextStyle(color: Color(0xFF1F6036)),
@@ -111,7 +150,6 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 20),
 
-                // BOTÃO ENTRAR
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -119,14 +157,13 @@ class _LoginPageState extends State<LoginPage> {
                         ? null
                         : () async {
                             if (!widget.firebaseReady) {
-                              if (mounted) {
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const HomePage(),
-                                  ),
-                                );
-                              }
+                              if (!mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HomePage(),
+                                ),
+                              );
                               return;
                             }
 
@@ -138,19 +175,21 @@ class _LoginPageState extends State<LoginPage> {
                                 _pass.text.trim(),
                               );
 
-                              if (mounted) {
-                                Navigator.pushReplacement(
-                                  // ignore: use_build_context_synchronously
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const HomePage(),
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.toString())),
+                              if (!mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HomePage(),
+                                ),
                               );
+                            } on FirebaseAuthException catch (e) {
+                              _showSnack(_loginMessageFromCode(e.code));
+                              debugPrint(
+                                'Login error: ${e.code} | ${e.message}',
+                              );
+                            } catch (e) {
+                              _showSnack('Ocorreu um erro. Tenta novamente.');
+                              debugPrint('Login error: $e');
                             } finally {
                               if (mounted) setState(() => _loading = false);
                             }
@@ -163,7 +202,6 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 8),
 
-                // LINK PARA REGISTAR
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

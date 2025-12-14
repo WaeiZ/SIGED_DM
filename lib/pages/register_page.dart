@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -17,6 +18,41 @@ class _RegisterPageState extends State<RegisterPage> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
   bool _loading = false;
+
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF1F6036),
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  String _registerMessageFromCode(String code) {
+    switch (code) {
+      case 'invalid-email':
+        return 'O email não é válido.';
+      case 'email-already-in-use':
+        return 'Esse email já está registado.';
+      case 'weak-password':
+        return 'A password é demasiado fraca.';
+      case 'network-request-failed':
+        return 'Sem ligação à internet. Tenta novamente.';
+      case 'too-many-requests':
+        return 'Demasiadas tentativas. Tenta mais tarde.';
+      default:
+        return 'Não foi possível criar a conta.';
+    }
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _pass.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,18 +107,24 @@ class _RegisterPageState extends State<RegisterPage> {
                         ? null
                         : () async {
                             setState(() => _loading = true);
+
                             try {
                               await auth.register(
                                 _email.text.trim(),
                                 _pass.text.trim(),
-                                name: _name.text.trim(), // <-- NOME AQUI
+                                name: _name.text.trim(),
                               );
 
-                              if (mounted) Navigator.pop(context);
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.toString())),
+                              if (!mounted) return;
+                              Navigator.pop(context);
+                            } on FirebaseAuthException catch (e) {
+                              _showSnack(_registerMessageFromCode(e.code));
+                              debugPrint(
+                                'Register error: ${e.code} | ${e.message}',
                               );
+                            } catch (e) {
+                              _showSnack('Ocorreu um erro. Tenta novamente.');
+                              debugPrint('Register error: $e');
                             } finally {
                               if (mounted) setState(() => _loading = false);
                             }
