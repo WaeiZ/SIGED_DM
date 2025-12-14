@@ -82,7 +82,7 @@ class _HomePageState extends State<HomePage> {
               ),
               NavigationDestination(
                 icon: Icon(Icons.bar_chart),
-                label: 'Comparação',
+                label: 'Histórico',
               ),
               NavigationDestination(icon: Icon(Icons.person), label: 'Perfil'),
             ],
