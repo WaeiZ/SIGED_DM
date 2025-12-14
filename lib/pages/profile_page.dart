@@ -83,7 +83,7 @@ class ProfilePage extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Alterar Senha'),
+              title: const Text('Alterar Password'),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
@@ -95,7 +95,7 @@ class ProfilePage extends StatelessWidget {
                         controller: senhaAtualController,
                         obscureText: !mostrarSenhaAtual,
                         decoration: InputDecoration(
-                          labelText: 'Senha Atual',
+                          labelText: 'Password Atual',
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -113,7 +113,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Insere a senha atual';
+                            return 'Insere a Password atual';
                           }
                           return null;
                         },
@@ -124,7 +124,7 @@ class ProfilePage extends StatelessWidget {
                         controller: novaSenhaController,
                         obscureText: !mostrarNovaSenha,
                         decoration: InputDecoration(
-                          labelText: 'Nova Senha',
+                          labelText: 'Nova Password',
                           prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -142,10 +142,10 @@ class ProfilePage extends StatelessWidget {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Insere a nova senha';
+                            return 'Insere a nova password';
                           }
                           if (value.length < 6) {
-                            return 'A senha deve ter pelo menos 6 caracteres';
+                            return 'A password deve ter pelo menos 6 caracteres';
                           }
                           return null;
                         },
@@ -156,7 +156,7 @@ class ProfilePage extends StatelessWidget {
                         controller: confirmarSenhaController,
                         obscureText: !mostrarConfirmarSenha,
                         decoration: InputDecoration(
-                          labelText: 'Confirmar Nova Senha',
+                          labelText: 'Confirmar Nova Password',
                           prefixIcon: const Icon(Icons.lock),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -174,10 +174,10 @@ class ProfilePage extends StatelessWidget {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Confirma a nova senha';
+                            return 'Confirma a nova password';
                           }
                           if (value != novaSenhaController.text) {
-                            return 'As senhas não coincidem';
+                            return 'As passwords não coincidem';
                           }
                           return null;
                         },
@@ -261,7 +261,7 @@ class ProfilePage extends StatelessWidget {
       // Mostrar sucesso
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Senha alterada com sucesso!'),
+          content: Text('Password alterada com sucesso!'),
           backgroundColor: Color(0xFF1F6036),
         ),
       );
