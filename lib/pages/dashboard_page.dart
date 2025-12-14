@@ -124,6 +124,7 @@ class _DashboardPageState extends State<DashboardPage> {
     double underlineWidth = (_selectedDevice.length * 9.0) + 30.0;
 
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text(
           'Dashboard',
@@ -146,6 +147,7 @@ class _DashboardPageState extends State<DashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               PopupMenuButton<String>(
+                color: const Color(0xFFEBEFE7),
                 onSelected: (String value) {
                   setState(() {
                     _selectedDevice = value;
@@ -211,7 +213,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
           // CARD 1 — CONSUMO ATUAL
           Card(
-            color: cs.surface,
+            color: const Color(0xFFEBEFE7),
             elevation: 1,
             shadowColor: Colors.black12,
             shape: RoundedRectangleBorder(
@@ -253,7 +255,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
           // CARD 2 — GRÁFICO EM TEMPO REAL
           Card(
-            color: cs.surface,
+            color: const Color(0xFFEBEFE7),
             elevation: 1,
             shadowColor: Colors.black12,
             shape: RoundedRectangleBorder(

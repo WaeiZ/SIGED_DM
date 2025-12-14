@@ -23,6 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
     final auth = context.read<AuthService>();
 
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(title: const Text('Criar Conta')),
       body: Center(
         child: ConstrainedBox(

@@ -67,6 +67,7 @@ class _LoginPageState extends State<LoginPage> {
     final auth = context.read<AuthService>();
 
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),

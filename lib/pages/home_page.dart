@@ -69,6 +69,7 @@ class _HomePageState extends State<HomePage> {
         ];
 
         return Scaffold(
+          backgroundColor: Colors.grey[100],
           body: pages[_selectedIndex],
           bottomNavigationBar: NavigationBar(
             selectedIndex: _selectedIndex,
