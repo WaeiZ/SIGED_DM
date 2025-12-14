@@ -125,10 +125,17 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SIGED - Dashboard'),
+        title: const Text(
+          'Dashboard',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF1F6036),
+        elevation: 0,
         centerTitle: true,
-        backgroundColor: cs.primary,
-        foregroundColor: cs.onPrimary,
       ),
 
       body: ListView(
