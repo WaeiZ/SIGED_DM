@@ -1,16 +1,15 @@
-//Martim Santos - 22309746
-//Sérgio Dias - 22304791
+// Martim Santos - 22309746
+// Sérgio Dias - 22304791
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import necessário
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/iot_service.dart';
 import '../models/energy_sample.dart';
 
 class DashboardPage extends StatefulWidget {
-  // Adicionado userId para podermos buscar os sensores deste utilizador
   final String userId;
 
   const DashboardPage({super.key, required this.userId});
@@ -23,7 +22,6 @@ class _DashboardPageState extends State<DashboardPage> {
   final List<EnergySample> _history = [];
   String _selectedDevice = 'Total';
 
-  // Lista para armazenar os nomes dos dispositivos vindos do Firebase
   List<String> _deviceNames = [];
   bool _isLoadingDevices = true;
 
@@ -33,21 +31,27 @@ class _DashboardPageState extends State<DashboardPage> {
 
     final iot = context.read<IoTService>();
 
-    // 1. Carregar dispositivos do Firestore ao iniciar
     _fetchDevices();
 
-    // 2. Ouvir stream IoT
     iot.stream.listen((sample) {
-      if (mounted) {
-        setState(() {
-          _history.add(sample);
-          if (_history.length > 180) _history.removeAt(0);
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        // reset quando o tempo volta de 59 -> 0
+        if (_history.isNotEmpty &&
+            sample.time.second < _history.last.time.second) {
+          _history.clear();
+        }
+
+        _history.add(sample);
+
+        if (_history.length > 60) {
+          _history.removeAt(0);
+        }
+      });
     });
   }
 
-  // Lógica adaptada da ComparisonPage para buscar descrições
   Future<void> _fetchDevices() async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -60,9 +64,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        // Tenta pegar a descrição, se não existir usa o ID do documento
-        final description = data['description'] ?? doc.id;
-        loadedDevices.add(description);
+        loadedDevices.add(data['description'] ?? doc.id);
       }
 
       if (mounted) {
@@ -74,9 +76,7 @@ class _DashboardPageState extends State<DashboardPage> {
     } catch (e) {
       debugPrint('Erro ao carregar dispositivos: $e');
       if (mounted) {
-        setState(() {
-          _isLoadingDevices = false;
-        });
+        setState(() => _isLoadingDevices = false);
       }
     }
   }
@@ -85,24 +85,21 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // --- FILTRAR HISTÓRICO ---
     final List<EnergySample> filteredHistory = (_selectedDevice == 'Total')
         ? _history
         : _history.where((s) => s.room == _selectedDevice).toList();
 
-    // --- CALCULAR CONSUMO ATUAL ---
     double total = 0;
     if (_selectedDevice == 'Total') {
       final latestByRoom = <String, double>{};
       for (final s in _history) {
         latestByRoom[s.room] = s.watts;
       }
-      total = latestByRoom.values.fold<double>(0, (a, b) => a + b);
+      total = latestByRoom.values.fold(0, (a, b) => a + b);
     } else {
       total = filteredHistory.isNotEmpty ? filteredHistory.last.watts : 0;
     }
 
-    // --- PREPARAR GRÁFICO ---
     final grouped = <int, double>{};
     for (final s in filteredHistory) {
       final second = s.time.second;
@@ -121,7 +118,7 @@ class _DashboardPageState extends State<DashboardPage> {
         .toList();
 
     final hasData = spots.isNotEmpty;
-    double underlineWidth = (_selectedDevice.length * 9.0) + 30.0;
+    final underlineWidth = (_selectedDevice.length * 9.0) + 30.0;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -135,49 +132,36 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
         backgroundColor: const Color(0xFF1F6036),
-        elevation: 0,
         centerTitle: true,
+        elevation: 0,
       ),
-
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // BOTÃO DE OPÇÕES (DISPOSITIVO)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               PopupMenuButton<String>(
                 color: const Color(0xFFEBEFE7),
-                onSelected: (String value) {
-                  setState(() {
-                    _selectedDevice = value;
-                  });
-                },
-                // AQUI ESTÁ A LÓGICA DINÂMICA
+                onSelected: (value) => setState(() => _selectedDevice = value),
                 itemBuilder: (context) {
-                  // Opção fixa 'Total'
-                  final List<PopupMenuEntry<String>> menuItems = [
+                  final items = <PopupMenuEntry<String>>[
                     const PopupMenuItem(value: 'Total', child: Text('Total')),
                   ];
 
-                  // Adiciona os dispositivos carregados do Firebase
                   if (_deviceNames.isNotEmpty) {
-                    for (var device in _deviceNames) {
-                      menuItems.add(
-                        PopupMenuItem(value: device, child: Text(device)),
-                      );
+                    for (final d in _deviceNames) {
+                      items.add(PopupMenuItem(value: d, child: Text(d)));
                     }
                   } else if (_isLoadingDevices) {
-                    // Mostra um item de loading se ainda estiver a carregar
-                    menuItems.add(
+                    items.add(
                       const PopupMenuItem(
                         enabled: false,
                         child: Text('A carregar...'),
                       ),
                     );
                   }
-
-                  return menuItems;
+                  return items;
                 },
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -191,31 +175,23 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Colors.black,
-                    ),
+                    const Icon(Icons.keyboard_arrow_down_rounded),
                   ],
                 ),
               ),
-
-              // SUBLINHADO
               Container(
                 margin: const EdgeInsets.only(top: 2),
                 height: 1.4,
                 width: underlineWidth,
                 color: Colors.black,
               ),
-
               const SizedBox(height: 16),
             ],
           ),
 
-          // CARD 1 — CONSUMO ATUAL
+          // CARD CONSUMO ATUAL
           Card(
             color: const Color(0xFFEBEFE7),
-            elevation: 1,
-            shadowColor: Colors.black12,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -227,7 +203,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   Text(
                     'Consumo Atual ($_selectedDevice)',
                     style: const TextStyle(
-                      color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -238,12 +213,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       Text(
                         '${total.toStringAsFixed(0)} W',
-                        style: const TextStyle(
-                          fontSize: 34,
-                          color: Colors.black,
-                        ),
+                        style: const TextStyle(fontSize: 34),
                       ),
-                      const Icon(Icons.bolt, size: 50, color: Colors.black),
+                      const Icon(Icons.bolt, size: 50),
                     ],
                   ),
                 ],
@@ -253,11 +225,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
           const SizedBox(height: 16),
 
-          // CARD 2 — GRÁFICO EM TEMPO REAL
+          // CARD GRÁFICO
           Card(
             color: const Color(0xFFEBEFE7),
-            elevation: 1,
-            shadowColor: Colors.black12,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -269,85 +239,151 @@ class _DashboardPageState extends State<DashboardPage> {
                   Text(
                     'Consumo em Tempo Real ($_selectedDevice)',
                     style: const TextStyle(
-                      color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
                   SizedBox(
                     height: 240,
                     child: hasData
-                        ? LineChart(
-                            LineChartData(
-                              minX: 0,
-                              maxX: 59,
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: spots,
-                                  isCurved: true,
-                                  barWidth: 3,
-                                  color: cs.primary,
-                                  dotData: const FlDotData(show: false),
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'watts (W)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
                                 ),
-                              ],
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                getDrawingHorizontalLine: (value) =>
-                                    const FlLine(
-                                      color: Colors.black26,
-                                      strokeWidth: 0.4,
-                                    ),
                               ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 10,
-                                    reservedSize: 24,
-                                    getTitlesWidget: (value, meta) {
-                                      if (value % 10 == 0) {
-                                        return Text(
-                                          value.toInt().toString(),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.black87,
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 8,
+                                        left: 4,
+                                        right:
+                                            14, // 👈 mais espaço à direita (resolve o corte)
+                                        bottom: 8,
+                                      ),
+                                      child: LineChart(
+                                        LineChartData(
+                                          minX: 0,
+                                          maxX: 59,
+                                          minY: 0,
+                                          maxY: 8000,
+
+                                          lineBarsData: [
+                                            LineChartBarData(
+                                              spots: spots,
+                                              isCurved: false,
+                                              barWidth: 3,
+                                              color: cs.primary,
+                                              dotData: const FlDotData(
+                                                show: false,
+                                              ),
+                                            ),
+                                          ],
+
+                                          gridData: FlGridData(
+                                            show: true,
+                                            drawVerticalLine: false,
+                                            horizontalInterval: 1000,
+                                            getDrawingHorizontalLine: (value) =>
+                                                FlLine(
+                                                  color: Colors.black
+                                                      .withOpacity(0.12),
+                                                  strokeWidth: 1,
+                                                ),
                                           ),
-                                        );
-                                      }
-                                      return const SizedBox.shrink();
-                                    },
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 200,
-                                    reservedSize: 36,
-                                    getTitlesWidget: (value, meta) {
-                                      return Text(
-                                        value.toInt().toString(),
-                                        style: const TextStyle(
-                                          fontSize: 11,
+
+                                          extraLinesData: ExtraLinesData(
+                                            horizontalLines: [
+                                              HorizontalLine(
+                                                y: 0,
+                                                color: Colors.black.withOpacity(
+                                                  0.18,
+                                                ),
+                                                strokeWidth: 1,
+                                                dashArray: [6, 4],
+                                              ),
+                                            ],
+                                          ),
+
+                                          titlesData: FlTitlesData(
+                                            bottomTitles: AxisTitles(
+                                              sideTitles: SideTitles(
+                                                showTitles: true,
+                                                interval: 10,
+                                                reservedSize: 30,
+                                                getTitlesWidget: (value, meta) {
+                                                  if (value % 10 == 0 ||
+                                                      value == 59) {
+                                                    return Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            left: 2,
+                                                          ),
+                                                      child: Text(
+                                                        value
+                                                            .toInt()
+                                                            .toString(),
+                                                        style: const TextStyle(
+                                                          fontSize: 11,
+                                                          color: Colors.black87,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                  return const SizedBox.shrink();
+                                                },
+                                              ),
+                                            ),
+                                            leftTitles: AxisTitles(
+                                              sideTitles: SideTitles(
+                                                showTitles: true,
+                                                interval: 1000,
+                                                reservedSize: 44,
+                                              ),
+                                            ),
+                                            topTitles: const AxisTitles(
+                                              sideTitles: SideTitles(
+                                                showTitles: false,
+                                              ),
+                                            ),
+                                            rightTitles: const AxisTitles(
+                                              sideTitles: SideTitles(
+                                                showTitles: false,
+                                              ),
+                                            ),
+                                          ),
+
+                                          borderData: FlBorderData(show: false),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // mantém apenas o "tempo (s)" no canto
+                                    const Positioned(
+                                      right: 8,
+                                      bottom: 2,
+                                      child: Text(
+                                        'tempo (s)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
                                           color: Colors.black87,
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              borderData: FlBorderData(show: false),
-                            ),
+                            ],
                           )
                         : const Center(
                             child: Text(
