@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 
 import '../services/iot_service.dart';
 import '../models/energy_sample.dart';
@@ -19,34 +20,67 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  final List<EnergySample> _history = [];
-  String _selectedDevice = 'Total';
+  // --- VARIÁVEIS DE ESTADO ---
 
+  final List<EnergySample> _rawHistory = [];
+  final List<double> _totalHistory = [];
+
+  final Map<String, double> _latestReadings = {};
+  DateTime? _lastTotalUpdate;
+
+  String _selectedDevice = 'Total';
   List<String> _deviceNames = [];
   bool _isLoadingDevices = true;
+
+  // --- CONFIGURAÇÃO DA JANELA DE TEMPO ---
+  final double _windowDuration = 60.0;
+  final int _secondsPerSample = 5;
+
+  // Adicionamos +1 para garantir que o gráfico vai até à linha dos 60s.
+  int get _pointsNeeded => (_windowDuration / _secondsPerSample).ceil() + 1;
 
   @override
   void initState() {
     super.initState();
 
     final iot = context.read<IoTService>();
-
     _fetchDevices();
 
     iot.stream.listen((sample) {
       if (!mounted) return;
 
       setState(() {
-        // reset quando o tempo volta de 59 -> 0
-        if (_history.isNotEmpty &&
-            sample.time.second < _history.last.time.second) {
-          _history.clear();
+        final now = DateTime.now();
+
+        // 1. Atualizar mapa
+        _latestReadings[sample.room] = sample.watts;
+
+        // 2. Calcular TOTAL
+        double currentTotalSum = _latestReadings.values.fold(
+          0,
+          (a, b) => a + b,
+        );
+
+        // 3. Lógica Total (Debounce para 5s)
+        if (_totalHistory.isNotEmpty &&
+            _lastTotalUpdate != null &&
+            now.difference(_lastTotalUpdate!).inMilliseconds < 2000) {
+          _totalHistory.last = currentTotalSum;
+        } else {
+          _totalHistory.add(currentTotalSum);
+          _lastTotalUpdate = now;
+
+          // Mantém apenas os pontos necessários (13)
+          if (_totalHistory.length > _pointsNeeded) {
+            _totalHistory.removeAt(0);
+          }
         }
 
-        _history.add(sample);
-
-        if (_history.length > 60) {
-          _history.removeAt(0);
+        // 4. Adicionar ao histórico RAW
+        _rawHistory.add(sample);
+        // Buffer maior para segurança
+        if (_rawHistory.length > 200) {
+          _rawHistory.removeAt(0);
         }
       });
     });
@@ -85,37 +119,45 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final List<EnergySample> filteredHistory = (_selectedDevice == 'Total')
-        ? _history
-        : _history.where((s) => s.room == _selectedDevice).toList();
+    List<FlSpot> spots = [];
+    double currentDisplayWatts = 0;
 
-    double total = 0;
     if (_selectedDevice == 'Total') {
-      final latestByRoom = <String, double>{};
-      for (final s in _history) {
-        latestByRoom[s.room] = s.watts;
+      // --- MODO TOTAL ---
+      currentDisplayWatts = _totalHistory.isNotEmpty ? _totalHistory.last : 0;
+
+      for (int i = 0; i < _totalHistory.length; i++) {
+        double xPosition = (i * _secondsPerSample).toDouble();
+        spots.add(FlSpot(xPosition, _totalHistory[i]));
       }
-      total = latestByRoom.values.fold(0, (a, b) => a + b);
     } else {
-      total = filteredHistory.isNotEmpty ? filteredHistory.last.watts : 0;
-    }
+      // --- MODO INDIVIDUAL ---
+      final roomHistory = _rawHistory
+          .where((s) => s.room == _selectedDevice)
+          .toList();
+      currentDisplayWatts = roomHistory.isNotEmpty ? roomHistory.last.watts : 0;
 
-    final grouped = <int, double>{};
-    for (final s in filteredHistory) {
-      final second = s.time.second;
-      if (_selectedDevice == 'Total') {
-        grouped[second] = (grouped[second] ?? 0) + s.watts;
-      } else {
-        grouped[second] = s.watts;
+      // Isso garante que mostramos pontos suficientes para chegar aos 60s.
+      int startIndex = 0;
+      if (roomHistory.length > _pointsNeeded) {
+        startIndex = roomHistory.length - _pointsNeeded;
+      }
+
+      int pointCounter = 0;
+      for (int i = startIndex; i < roomHistory.length; i++) {
+        double xPosition = (pointCounter * _secondsPerSample).toDouble();
+        spots.add(FlSpot(xPosition, roomHistory[i].watts));
+        pointCounter++;
       }
     }
 
-    final ordered = grouped.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    final spots = ordered
-        .map((e) => FlSpot(e.key.toDouble(), e.value))
-        .toList();
+    // Y Máximo
+    double maxVal = 0;
+    for (var spot in spots) {
+      if (spot.y > maxVal) maxVal = spot.y;
+    }
+    double maxY = (maxVal < 100) ? 100 : (maxVal * 1.2);
+    maxY = (maxY / 10).ceil() * 10;
 
     final hasData = spots.isNotEmpty;
     final underlineWidth = (_selectedDevice.length * 9.0) + 30.0;
@@ -138,6 +180,7 @@ class _DashboardPageState extends State<DashboardPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // SELETOR
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -148,7 +191,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   final items = <PopupMenuEntry<String>>[
                     const PopupMenuItem(value: 'Total', child: Text('Total')),
                   ];
-
                   if (_deviceNames.isNotEmpty) {
                     for (final d in _deviceNames) {
                       items.add(PopupMenuItem(value: d, child: Text(d)));
@@ -189,7 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ],
           ),
 
-          // CARD CONSUMO ATUAL
+          // CARD CONSUMO
           Card(
             color: const Color(0xFFEBEFE7),
             shape: RoundedRectangleBorder(
@@ -212,7 +254,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${total.toStringAsFixed(0)} W',
+                        '${currentDisplayWatts.toStringAsFixed(0)} W',
                         style: const TextStyle(fontSize: 34),
                       ),
                       const Icon(Icons.bolt, size: 50),
@@ -266,16 +308,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                       padding: const EdgeInsets.only(
                                         top: 8,
                                         left: 4,
-                                        right:
-                                            14, // 👈 mais espaço à direita (resolve o corte)
+                                        right: 14,
                                         bottom: 8,
                                       ),
                                       child: LineChart(
                                         LineChartData(
                                           minX: 0,
-                                          maxX: 59,
+                                          maxX: _windowDuration,
                                           minY: 0,
-                                          maxY: 8000,
+                                          maxY: maxY,
 
                                           lineBarsData: [
                                             LineChartBarData(
@@ -292,7 +333,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                           gridData: FlGridData(
                                             show: true,
                                             drawVerticalLine: false,
-                                            horizontalInterval: 1000,
+                                            horizontalInterval: maxY / 5,
                                             getDrawingHorizontalLine: (value) =>
                                                 FlLine(
                                                   color: Colors.black
@@ -318,36 +359,41 @@ class _DashboardPageState extends State<DashboardPage> {
                                             bottomTitles: AxisTitles(
                                               sideTitles: SideTitles(
                                                 showTitles: true,
-                                                interval: 10,
+                                                interval: 5,
                                                 reservedSize: 30,
                                                 getTitlesWidget: (value, meta) {
-                                                  if (value % 10 == 0 ||
-                                                      value == 59) {
-                                                    return Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                            left: 2,
-                                                          ),
-                                                      child: Text(
-                                                        value
-                                                            .toInt()
-                                                            .toString(),
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          color: Colors.black87,
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 4,
                                                         ),
+                                                    child: Text(
+                                                      '${value.toInt()}s',
+                                                      style: const TextStyle(
+                                                        fontSize: 10,
+                                                        color: Colors.black54,
                                                       ),
-                                                    );
-                                                  }
-                                                  return const SizedBox.shrink();
+                                                    ),
+                                                  );
                                                 },
                                               ),
                                             ),
                                             leftTitles: AxisTitles(
                                               sideTitles: SideTitles(
                                                 showTitles: true,
-                                                interval: 1000,
-                                                reservedSize: 44,
+                                                interval: maxY / 5,
+                                                reservedSize: 40,
+                                                getTitlesWidget: (value, meta) {
+                                                  if (value == 0)
+                                                    return const SizedBox.shrink();
+                                                  return Text(
+                                                    value.toInt().toString(),
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.black54,
+                                                    ),
+                                                  );
+                                                },
                                               ),
                                             ),
                                             topTitles: const AxisTitles(
@@ -361,18 +407,15 @@ class _DashboardPageState extends State<DashboardPage> {
                                               ),
                                             ),
                                           ),
-
                                           borderData: FlBorderData(show: false),
                                         ),
                                       ),
                                     ),
-
-                                    // mantém apenas o "tempo (s)" no canto
                                     const Positioned(
-                                      right: 8,
-                                      bottom: 2,
+                                      right: 0,
+                                      bottom: 0,
                                       child: Text(
-                                        'tempo (s)',
+                                        'janela de tempo (ultimos 60s)',
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -387,7 +430,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           )
                         : const Center(
                             child: Text(
-                              'A recolher dados...',
+                              'A aguardar dados...',
                               style: TextStyle(
                                 color: Colors.black54,
                                 fontSize: 14,
