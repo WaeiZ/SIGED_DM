@@ -1,6 +1,8 @@
 //Martim Santos - 22309746
 //Sérgio Dias - 22304791
 
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
