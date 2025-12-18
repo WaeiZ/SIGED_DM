@@ -637,7 +637,7 @@ class _ComparisonPageState extends State<ComparisonPage> {
       }
 
       // TOTAL DE ENERGIA (kWh) NO PERÍODO
-      // Robusto a resets: soma apenas incrementos positivos (energy cumulativo)
+
       double totalEnergiaKWh = 0;
 
       if (valoresEnergia.length >= 2) {
