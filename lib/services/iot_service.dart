@@ -57,7 +57,7 @@ class IoTService {
         }
         print('Sensores carregados: $_activeSensors');
       } else {
-        print('⚠️ Nenhum sensor encontrado. A criar padrões...');
+        print('Nenhum sensor encontrado. A criar padrões...');
         await _initializeDefaultSensors();
       }
     } catch (e) {

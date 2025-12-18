@@ -440,10 +440,16 @@ class _ComparisonPageState extends State<ComparisonPage> {
               showTitles: true,
               reservedSize: 40,
               getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10),
-                );
+                String label;
+                if (value.toDouble() > 0 && value.toDouble() < 1) {
+                  // Exibe valores entre 0 e 1 com 3 casas decimais
+                  label = value.toDouble().toStringAsFixed(3);
+                } else {
+                  // Para valores fora desse intervalo, exibe como inteiro
+                  label = value.toInt().toString();
+                }
+
+                return Text(label, style: const TextStyle(fontSize: 10));
               },
             ),
           ),
